@@ -1,0 +1,353 @@
+Resources:
+  ValidationLambdauseast1ServiceRole53D8885B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/ValidationLambda-us-east-1/ServiceRole/Resource
+  ValidationLambdauseast16D527904:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
+        S3Key: 5be330c1c394d7a464ee127b65ad89853b786f1096ea0f39dfcfa7ff80a4974b.zip
+      FunctionName: ValidationLambda
+      Handler: index.handler
+      MemorySize: 1024
+      Role:
+        Fn::GetAtt:
+          - ValidationLambdauseast1ServiceRole53D8885B
+          - Arn
+      Runtime: python3.12
+      Timeout: 30
+    DependsOn:
+      - ValidationLambdauseast1ServiceRole53D8885B
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/ValidationLambda-us-east-1/Resource
+      aws:asset:path: asset.5be330c1c394d7a464ee127b65ad89853b786f1096ea0f39dfcfa7ff80a4974b
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  ErrorHandlingLambdauseast1ServiceRole7537EE14:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/ErrorHandlingLambda-us-east-1/ServiceRole/Resource
+  ErrorHandlingLambdauseast1383C2E21:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Fn::Sub: cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}
+        S3Key: 7f782b48059bb17f2976afa0c89ef17d27c2614a4912982a87c775e00905823d.zip
+      FunctionName: ErrorHandlingLambda
+      Handler: index.handler
+      MemorySize: 1024
+      Role:
+        Fn::GetAtt:
+          - ErrorHandlingLambdauseast1ServiceRole7537EE14
+          - Arn
+      Runtime: python3.12
+      Timeout: 30
+    DependsOn:
+      - ErrorHandlingLambdauseast1ServiceRole7537EE14
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/ErrorHandlingLambda-us-east-1/Resource
+      aws:asset:path: asset.7f782b48059bb17f2976afa0c89ef17d27c2614a4912982a87c775e00905823d
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  AwsStepFunctionRole8140F1C8:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/AwsStepFunction/Role/Resource
+  AwsStepFunctionC2061B3A:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString:
+        Fn::Join:
+          - ""
+          - - '{"Comment": "Data Processing Workflow with Error Handling", "StartAt": "ValidateInput", "States": {"ValidateInput": {"Type": "Task", "Resource": "'
+            - Fn::GetAtt:
+                - ValidationLambdauseast16D527904
+                - Arn
+            - '", "InputPath": "$.data", "ResultPath": "$.validationResult", "Retry": [{"ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2}, {"ErrorEquals": ["ValidationError"], "MaxAttempts": 0}], "Catch": [{"ErrorEquals": ["ValidationError"], "ResultPath": "$.error", "Next": "HandleValidationError"}, {"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "HandleSystemError"}], "End": true}, "HandleValidationError": {"Type": "Task", "Resource": "'
+            - Fn::GetAtt:
+                - ErrorHandlingLambdauseast1383C2E21
+                - Arn
+            - '", "Parameters": {"error.$": "$.error", "type": "VALIDATION_ERROR", "workflow": "DataProcessingWorkflow", "originalInput.$": "$.data"}, "End": true}, "HandleSystemError": {"Type": "Task", "Resource": "'
+            - Fn::GetAtt:
+                - ErrorHandlingLambdauseast1383C2E21
+                - Arn
+            - '", "Parameters": {"error.$": "$.error", "type": "SYSTEM_ERROR", "workflow": "DataProcessingWorkflow", "originalInput.$": "$"}, "End": true}}}'
+      RoleArn:
+        Fn::GetAtt:
+          - AwsStepFunctionRole8140F1C8
+          - Arn
+    DependsOn:
+      - AwsStepFunctionRole8140F1C8
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/AwsStepFunction/Resource
+  RestApiGatewayAEAE89B5:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Rest API Gateway
+      Name: RestApi1
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/RestApiGateway/Resource
+  RestApiGatewayCloudWatchRole2EB75410:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/RestApiGateway/CloudWatchRole/Resource
+  RestApiGatewayAccount9D8EA70A:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+          - RestApiGatewayCloudWatchRole2EB75410
+          - Arn
+    DependsOn:
+      - RestApiGatewayAEAE89B5
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/RestApiGateway/Account
+  RestApiGatewayDeploymentF53F9A83c11d3c88bd7fed1c4a8e2a9d604f98bd:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      Description: Rest API Gateway
+      RestApiId:
+        Ref: RestApiGatewayAEAE89B5
+    DependsOn:
+      - RestApiGatewayPOSTA078A024
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/RestApiGateway/Deployment/Resource
+  RestApiGatewayDeploymentStageprodCFA2B4CE:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId:
+        Ref: RestApiGatewayDeploymentF53F9A83c11d3c88bd7fed1c4a8e2a9d604f98bd
+      RestApiId:
+        Ref: RestApiGatewayAEAE89B5
+      StageName: prod
+    DependsOn:
+      - RestApiGatewayAccount9D8EA70A
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/RestApiGateway/DeploymentStage.prod/Resource
+  RestApiGatewayPOSTA078A024:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Credentials:
+          Fn::GetAtt:
+            - AwsStepFunctionRole8140F1C8
+            - Arn
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: "{'executionArn': $input.json('$.executionArn')}"
+            StatusCode: "200"
+        RequestTemplates:
+          application/json:
+            Fn::Join:
+              - ""
+              - - '{"stateMachineArn": "'
+                - Ref: AwsStepFunctionC2061B3A
+                - '","input": "$util.escapeJavaScript($input.body)"}'
+        Type: AWS
+        Uri:
+          Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - ":apigateway:"
+              - Ref: AWS::Region
+              - :states:action/StartExecution
+      MethodResponses:
+        - StatusCode: "200"
+      ResourceId:
+        Fn::GetAtt:
+          - RestApiGatewayAEAE89B5
+          - RootResourceId
+      RestApiId:
+        Ref: RestApiGatewayAEAE89B5
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/RestApiGateway/Default/POST/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Analytics: v2:deflate64:H4sIAAAAAAAA/01Q0W7CMAz8Ft7TTAVpPBemvSEm+AAUUlO8tkmEHaGqyr/jtLDx5LuzfWd5qcvPtS4X5k6Frduiw7Mej2xsq0Q6jZ3pz7XR43d0ltE7tb24F04KTa/Hg+8gy7kmRauTIQImXeUiXG+ibYE3hkARQ7g812kKYtgZe0U3WbzzpEzARvjdDBICxFXAKecfVtb66Fh9Qej80INAUd+YGDYvZwGy6uPNwnTLDvjq69ycUUp/fTXdnnfQNXliHzlEfqbPI4K33tU4f+JnEAv3sdLlUq8Xv4RY3OQy7EEf5voA8NUmymoBAAA=
+    Metadata:
+      aws:cdk:path: StepFunctionsBasicsStack-dev-us-east-1/CDKMetadata/Default
+    Condition: CDKMetadataAvailable
+Outputs:
+  RestApiGatewayEndpointF48811B0:
+    Value:
+      Fn::Join:
+        - ""
+        - - https://
+          - Ref: RestApiGatewayAEAE89B5
+          - .execute-api.
+          - Ref: AWS::Region
+          - "."
+          - Ref: AWS::URLSuffix
+          - /
+          - Ref: RestApiGatewayDeploymentStageprodCFA2B4CE
+          - /
+Conditions:
+  CDKMetadataAvailable:
+    Fn::Or:
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - af-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-3
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-south-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-3
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-4
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ca-central-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ca-west-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - cn-north-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - cn-northwest-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-central-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-central-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-north-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-south-2
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-3
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - il-central-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - me-central-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - me-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - sa-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-east-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-west-1
+      - Fn::Equals:
+          - Ref: AWS::Region
+          - us-west-2
+Parameters:
+  BootstrapVersion:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cdk-bootstrap/hnb659fds/version
+    Description: Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]
+

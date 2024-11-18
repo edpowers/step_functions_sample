@@ -1,0 +1,8 @@
+{
+    "Type": "Task",
+    "Resource": "${LambdaArn}",
+    "InputPath": "${InputPath}",
+    "ResultPath": "${ResultPath}",
+    "OutputPath": "${OutputPath}",
+    "Retry": "${Retry}"
+}

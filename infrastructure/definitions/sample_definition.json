@@ -1,0 +1,36 @@
+{
+    "Comment": "A sample step function workflow",
+    "StartAt": "ProcessInput",
+    "States": {
+        "ProcessInput": {
+            "Type": "Pass",
+            "Parameters": {
+                "data": {
+                    "input_received.$": "$.body",
+                    "timestamp.$": "$$.State.EnteredTime"
+                }
+            },
+            "Next": "InvokeLambda"
+        },
+        "InvokeLambda": {
+            "Type": "Task",
+            "Resource": "${LambdaArn}",
+            "InputPath": "$.data",
+            "ResultPath": "$.taskResult",
+            "OutputPath": "$.taskResult",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 6,
+                    "BackoffRate": 2
+                }
+            ],
+            "End": true
+        }
+    }
+}

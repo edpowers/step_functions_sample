@@ -1,0 +1,20 @@
+{
+    "standard_retry": {
+        "ErrorEquals": [
+            "States.ALL"
+        ],
+        "IntervalSeconds": 2,
+        "MaxAttempts": 3,
+        "BackoffRate": 2
+    },
+    "lambda_retry": {
+        "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+        ],
+        "IntervalSeconds": 2,
+        "MaxAttempts": 6,
+        "BackoffRate": 2
+    }
+}
